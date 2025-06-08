@@ -1,10 +1,11 @@
 import json
 from typing import Any
 from langchain_core.runnables import RunnableConfig
-from langchain_core.output_parsers import JsonOutputParser
+from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.callbacks import get_usage_metadata_callback
 from pydantic import BaseModel
 
-from ai_common import LlmServers, get_llm, TavilySearchCategory, strip_thinking_tokens
+from ai_common import LlmServers, get_llm, TavilySearchCategory
 from ..enums import Node
 from ..configuration import Configuration
 from ..state import Sections
@@ -79,8 +80,10 @@ Return the sections of the report as a JSON object:
 }}
 </format>
 
-Now, generate the sections of the report. 
+Generate the sections of the report. 
 Before submitting, review your structure to ensure it has no redundant sections and follows a logical flow.
+Your response must include a 'sections' field containing a list of sections.
+Each section must have: name, description, research, and content fields.
 """
 
 
@@ -92,16 +95,18 @@ class Planner:
                  search_category: TavilySearchCategory,
                  number_of_days_back: int,
                  max_tokens_per_source: int = 5000):
+        self.llm_server = llm_server
+        self.model_params = model_params
         self.query_writer = QueryWriter(llm_server=llm_server, model_params=model_params)
         self.web_search_node = WebSearchNode(web_search_api_key=web_search_api_key,
                                              search_category=search_category,
                                              number_of_days_back=number_of_days_back,
                                              max_tokens_per_source=max_tokens_per_source)
 
-        model_params['model_name'] = model_params['reasoning_model']
+        self.model_name = model_params['reasoning_model']
+        model_params['model_name'] = self.model_name
         self.base_llm = get_llm(llm_server=llm_server, model_params=model_params)
-        # self.structured_llm = base_llm.with_structured_output(Sections)
-        # self.structured_llm = base_llm | JsonOutputParser()
+        # self.structured_llm = self.base_llm.with_structured_output(Sections)
 
     def run(self, state: BaseModel, config: RunnableConfig) -> BaseModel:
         """
@@ -143,9 +148,13 @@ class Planner:
                                                    report_organization=configurable.report_structure,
                                                    context=state.source_str)
 
-        results = self.base_llm.invoke(input=instructions)
-        idx = results.content.rfind('</think>') # last occurrence of '</think>'
-        json_str = results.content[idx+len('</think>'):]
-        json_dict = json.loads(json_str)
+        with get_usage_metadata_callback() as cb:
+            results = self.base_llm.invoke(instructions,
+                                           max_completion_tokens=131072,
+                                           top_p=0.95,
+                                           response_format={"type": "json_object"})
+            state.token_usage[self.model_name]['input_tokens'] += cb.usage_metadata[self.model_name]['input_tokens']
+            state.token_usage[self.model_name]['output_tokens'] += cb.usage_metadata[self.model_name]['output_tokens']
+        json_dict = json.loads(results.content)
         state.sections = json_dict['sections']
         return state

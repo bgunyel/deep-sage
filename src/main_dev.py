@@ -17,13 +17,13 @@ def main():
             'model_name': None,
             'groq_api_key': settings.GROQ_API_KEY,
             'language_model': 'llama-3.3-70b-versatile',
-            'reasoning_model': 'qwen-qwq-32b',
+            'reasoning_model': 'deepseek-r1-distill-llama-70b' # 'qwen-qwq-32b' is very problematic with structured output
         },
         LlmServers.OPENAI.value: {
             'model_name': None,
             'openai_api_key': settings.OPENAI_API_KEY,
-            'language_model': 'gpt-4.1-2025-04-14',
-            'reasoning_model': 'o3',
+            'language_model': 'gpt-4.1-mini',
+            'reasoning_model': 'gpt-4.1-mini',
         },
         LlmServers.VLLM.value: {
             'llm_base_url': None,

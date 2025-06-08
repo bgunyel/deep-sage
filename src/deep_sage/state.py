@@ -4,6 +4,21 @@ from pydantic import BaseModel, Field
 from ai_common import SearchQuery
 
 
+section_template = """
+<Report topic>
+{topic}
+</Report topic>
+
+<Section name>
+{section_name}
+</Section name>
+
+<Section topic>
+{section_topic}
+</Section topic>
+"""
+
+
 class Section(BaseModel):
     name: str = Field(
         description="Name for this section of the report.",
@@ -35,9 +50,10 @@ class ReportState(BaseModel):
     """
     content: str
     iteration: int = 0
-    sections: list[dict[str, Any]]
+    sections: list[Section]
     search_queries: list[SearchQuery]
     source_str: str
     steps: list[str]
+    token_usage: dict
     topic: str
     unique_sources: dict[str, Any]

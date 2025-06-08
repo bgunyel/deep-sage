@@ -22,7 +22,7 @@ class Configuration(ConfigurationBase):
     max_iterations: int = 3
     max_tokens_per_source: int = 5000
     number_of_days_back: int = None
-    number_of_queries: int = 3
+    number_of_queries: int = 4
     report_structure: str = DEFAULT_REPORT_STRUCTURE
     search_category: TavilySearchCategory = "general"
     strip_thinking_tokens: bool = True
