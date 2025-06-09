@@ -23,7 +23,8 @@ class Researcher(GraphBase):
             web_search_api_key = web_search_api_key,
             search_category = config.search_category,
             number_of_days_back = config.number_of_days_back,
-            max_tokens_per_source = config.max_tokens_per_source
+            max_tokens_per_source = config.max_tokens_per_source,
+            max_results_per_query = config.max_results_per_query,
         )
         self.section_writer = SummaryWriter(
             llm_server=llm_server,

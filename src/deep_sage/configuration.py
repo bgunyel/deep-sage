@@ -20,9 +20,10 @@ class Configuration(ConfigurationBase):
     """The configurable fields for the workflow"""
     context_window_length: int = int(12 * 1024)
     max_iterations: int = 3
+    max_results_per_query: int = 5
     max_tokens_per_source: int = 5000
     number_of_days_back: int = None
-    number_of_queries: int = 4
+    number_of_queries: int = 3
     report_structure: str = DEFAULT_REPORT_STRUCTURE
     search_category: TavilySearchCategory = "general"
     strip_thinking_tokens: bool = True

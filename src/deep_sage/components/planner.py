@@ -1,17 +1,16 @@
+import asyncio
 import json
 from typing import Any
-from langchain_core.runnables import RunnableConfig
-from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_core.callbacks import get_usage_metadata_callback
-from pydantic import BaseModel
 
 from ai_common import LlmServers, get_llm, TavilySearchCategory
-from ..enums import Node
-from ..configuration import Configuration
-from ..state import Sections
+from langchain_core.callbacks import get_usage_metadata_callback
+from langchain_core.runnables import RunnableConfig
+from pydantic import BaseModel
+
 from .query_writer import QueryWriter
 from .web_search_node import WebSearchNode
-
+from ..configuration import Configuration
+from ..enums import Node
 
 PLANNER_INSTRUCTIONS = """
 You are an expert writer planning the outline of sections of a report about a given topic.
@@ -94,14 +93,19 @@ class Planner:
                  web_search_api_key: str,
                  search_category: TavilySearchCategory,
                  number_of_days_back: int,
-                 max_tokens_per_source: int = 5000):
+                 max_tokens_per_source: int,
+                 max_results_per_query: int):
+        self.event_loop = asyncio.get_event_loop()
         self.llm_server = llm_server
         self.model_params = model_params
         self.query_writer = QueryWriter(llm_server=llm_server, model_params=model_params)
         self.web_search_node = WebSearchNode(web_search_api_key=web_search_api_key,
                                              search_category=search_category,
                                              number_of_days_back=number_of_days_back,
-                                             max_tokens_per_source=max_tokens_per_source)
+                                             max_tokens_per_source=max_tokens_per_source,
+                                             max_results_per_query=max_results_per_query,
+                                             llm_server=llm_server,
+                                             model_params=model_params)
 
         self.model_name = model_params['reasoning_model']
         model_params['model_name'] = self.model_name
@@ -150,9 +154,9 @@ class Planner:
 
         with get_usage_metadata_callback() as cb:
             results = self.base_llm.invoke(instructions,
-                                           max_completion_tokens=131072,
-                                           top_p=0.95,
-                                           response_format={"type": "json_object"})
+                                           max_completion_tokens = 131072,
+                                           top_p = 0.95,
+                                           response_format = {"type": "json_object"})
             state.token_usage[self.model_name]['input_tokens'] += cb.usage_metadata[self.model_name]['input_tokens']
             state.token_usage[self.model_name]['output_tokens'] += cb.usage_metadata[self.model_name]['output_tokens']
         json_dict = json.loads(results.content)
