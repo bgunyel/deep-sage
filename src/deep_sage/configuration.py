@@ -1,4 +1,4 @@
-from ai_common import ConfigurationBase, TavilySearchCategory
+from ai_common import CfgBase, TavilySearchCategory
 
 
 DEFAULT_REPORT_STRUCTURE = """The report structure should focus on breaking-down the user-provided topic:
@@ -16,14 +16,13 @@ DEFAULT_REPORT_STRUCTURE = """The report structure should focus on breaking-down
    - Provide a concise summary of the report"""
 
 
-class Configuration(ConfigurationBase):
+class Configuration(CfgBase):
     """The configurable fields for the workflow"""
-    context_window_length: int = int(12 * 1024)
-    max_iterations: int = 3
-    max_results_per_query: int = 5
-    max_tokens_per_source: int = 5000
-    number_of_days_back: int = None
-    number_of_queries: int = 3
+    max_iterations: int # = 3
+    max_results_per_query: int # = 5
+    max_tokens_per_source: int # = 5000
+    number_of_days_back: int # = None
+    number_of_queries: int # = 3
     report_structure: str = DEFAULT_REPORT_STRUCTURE
     search_category: TavilySearchCategory = "general"
     strip_thinking_tokens: bool = True

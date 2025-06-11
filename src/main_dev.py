@@ -1,12 +1,10 @@
+from uuid import uuid4
 import datetime
 import time
-import rich
 
-from ai_common import Engine, LlmServers
+from ai_common import LlmServers, PRICE_USD_PER_MILLION_TOKENS
 from config import settings
 from src.deep_sage import Researcher
-
-
 
 def main():
 
@@ -40,29 +38,36 @@ def main():
     language_model = llm_config[llm_server.value].get('language_model', '')
     reasoning_model = llm_config[llm_server.value].get('reasoning_model', '')
 
-    engine = Engine(
-        responder=Researcher(
-            llm_server = llm_server,
-            llm_config = llm_config[llm_server.value],
-            web_search_api_key = settings.TAVILY_API_KEY
-        ),
-        llm_server=llm_server,
-        models=[language_model, reasoning_model],
-        llm_base_url=llm_config[llm_server.value].get('llm_base_url', ''),
-        save_to_folder=settings.OUT_FOLDER
-    )
-
+    topic = 'first 100 days of Trump administration'
     print(f'LLM Server: {llm_server.value}')
     print(f'Language Model: {language_model}')
     print(f'Reasoning Model: {reasoning_model}')
     print('\n\n\n')
 
-    input_dict = {'topic': 'first 100 days of Trump administration'}
-    rich.print(input_dict)
+    config = {
+        "configurable": {
+            'thread_id': str(uuid4()),
+            'max_iterations': 3,
+            'max_results_per_query': 4,
+            'max_tokens_per_source': 10000,
+            'number_of_days_back': 1e6,
+            'number_of_queries': 3,
+            'search_category': 'general',
+            'strip_thinking_tokens': True,
+        }
+    }
 
-    engine.save_flow_chart(save_to_folder=settings.OUT_FOLDER)
-    response = engine.get_response(input_dict=input_dict)
-    rich.print(response)
+    researcher = Researcher(
+        llm_server=llm_server,
+        llm_config=llm_config[llm_server.value],
+        web_search_api_key=settings.TAVILY_API_KEY
+    )
+
+    out_dict = researcher.run(topic=topic, config=config)
+    price_dict = {k: PRICE_USD_PER_MILLION_TOKENS[llm_server.value][k] for k in out_dict['token_usage'].keys()}
+    total_cost = sum([price_dict[k][p] * out_dict['token_usage'][k][p] for k in price_dict.keys() for p in
+                      price_dict[k].keys()]) / 1e6
+    print(f'Total Token Usage Cost: {total_cost:.4f} USD')
 
     dummy = -32
 

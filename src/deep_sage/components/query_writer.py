@@ -73,7 +73,6 @@ class QueryWriter:
         
         configurable = Configuration.from_runnable_config(config=config)
         state.steps.append(Node.QUERY_WRITER.value)
-
         instructions = QUERY_WRITER_INSTRUCTIONS.format(topic=state.topic,
                                                         today=datetime.date.today().isoformat(),
                                                         number_of_queries=configurable.number_of_queries)

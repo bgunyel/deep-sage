@@ -1,15 +1,13 @@
 import asyncio
 import json
-from typing import Any
+from typing import Any, Final
 
-from ai_common import LlmServers, get_llm, TavilySearchCategory
+from ai_common import LlmServers, get_llm, TavilySearchCategory, get_config_from_runnable
+from ai_common.components import QueryWriter, WebSearchNode
 from langchain_core.callbacks import get_usage_metadata_callback
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel
 
-from .query_writer import QueryWriter
-from .web_search_node import WebSearchNode
-from ..configuration import Configuration
 from ..enums import Node
 
 PLANNER_INSTRUCTIONS = """
@@ -91,26 +89,22 @@ class Planner:
                  llm_server: LlmServers,
                  model_params: dict[str, Any],
                  web_search_api_key: str,
-                 search_category: TavilySearchCategory,
-                 number_of_days_back: int,
-                 max_tokens_per_source: int,
-                 max_results_per_query: int):
+                 configuration_module_prefix: str):
+        self.configuration_module_prefix: Final = configuration_module_prefix
         self.event_loop = asyncio.get_event_loop()
         self.llm_server = llm_server
         self.model_params = model_params
-        self.query_writer = QueryWriter(llm_server=llm_server, model_params=model_params)
-        self.web_search_node = WebSearchNode(web_search_api_key=web_search_api_key,
-                                             search_category=search_category,
-                                             number_of_days_back=number_of_days_back,
-                                             max_tokens_per_source=max_tokens_per_source,
-                                             max_results_per_query=max_results_per_query,
-                                             llm_server=llm_server,
-                                             model_params=model_params)
+        self.query_writer = QueryWriter(llm_server = llm_server,
+                                        model_params = model_params,
+                                        configuration_module_prefix = self.configuration_module_prefix)
+        self.web_search_node = WebSearchNode(web_search_api_key = web_search_api_key,
+                                             llm_server = llm_server,
+                                             model_params = model_params,
+                                             configuration_module_prefix = self.configuration_module_prefix)
 
         self.model_name = model_params['reasoning_model']
         model_params['model_name'] = self.model_name
         self.base_llm = get_llm(llm_server=llm_server, model_params=model_params)
-        # self.structured_llm = self.base_llm.with_structured_output(Sections)
 
     def run(self, state: BaseModel, config: RunnableConfig) -> BaseModel:
         """
@@ -143,9 +137,12 @@ class Planner:
         """
 
         state = self.query_writer.run(state=state, config=config)
-        state = self.web_search_node.run(state=state)
+        state = self.web_search_node.run(state=state, config=config)
 
-        configurable = Configuration.from_runnable_config(config=config)
+        configurable = get_config_from_runnable(
+            configuration_module_prefix = self.configuration_module_prefix,
+            config = config
+        )
         state.steps.append(Node.PLANNER.value)
 
         instructions = PLANNER_INSTRUCTIONS.format(topic=state.topic,
