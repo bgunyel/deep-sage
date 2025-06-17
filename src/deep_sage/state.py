@@ -5,17 +5,9 @@ from ai_common import SearchQuery
 
 
 section_template = """
-<Report topic>
-{topic}
-</Report topic>
-
-<Section name>
-{section_name}
-</Section name>
-
-<Section topic>
-{section_topic}
-</Section topic>
+Overall topic: {topic}
+Section title: {section_title}
+Section description: {section_description}
 """
 
 

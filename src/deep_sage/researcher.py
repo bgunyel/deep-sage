@@ -1,33 +1,36 @@
+import asyncio
 from uuid import uuid4
 from typing import Any, Final
 from langgraph.graph import START, END, StateGraph
+from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.runnables import RunnableConfig
 
-from ai_common import LlmServers, GraphBase
-from summary_writer import SummaryWriter
+from ai_common import GraphBase
 
 from .configuration import Configuration
 from .enums import Node
 from .state import ReportState, section_template
 from .components.planner import Planner
+from .components.sections_writer import SectionsWriter
 
 
 class Researcher(GraphBase):
-    def __init__(self, llm_server: LlmServers, llm_config: dict[str, Any], web_search_api_key: str):
-        self.models = list({llm_config['language_model'], llm_config['reasoning_model']})
+    def __init__(self, llm_config: dict[str, Any], web_search_api_key: str):
+        self.memory_saver = MemorySaver()
+        self.models = list({llm_config['language_model']['model'], llm_config['reasoning_model']['model']})
         self.configuration_module_prefix: Final = 'src.deep_sage.configuration'
 
         self.planner = Planner(
-            llm_server = llm_server,
-            model_params = llm_config,
+            llm_config = llm_config,
             web_search_api_key = web_search_api_key,
             configuration_module_prefix = self.configuration_module_prefix,
         )
-        self.section_writer = SummaryWriter(
-            llm_server=llm_server,
+        self.sections_writer = SectionsWriter(
             llm_config=llm_config,
-            web_search_api_key=web_search_api_key
+            web_search_api_key=web_search_api_key,
+            configuration_module_prefix=self.configuration_module_prefix,
         )
+
         self.graph = self.build_graph()
 
     def run(self, topic: str, config: RunnableConfig) -> dict[str, Any]:
@@ -52,49 +55,21 @@ class Researcher(GraphBase):
 
     def get_response(self, input_dict: dict[str, Any], verbose: bool = False) -> str:
         config = {"configurable": {"thread_id": str(uuid4())}}
-
-        in_state = ReportState(
-            content = '',
-            iteration = 0,
-            sections = [],
-            search_queries = [],
-            source_str = '',
-            steps = [],
-            token_usage = {m:{'input_tokens': 0, 'output_tokens': 0} for m in self.models},
-            topic = input_dict['topic'],
-            unique_sources = {},
-        )
-        out_state = self.graph.invoke(in_state, config)
-        return out_state
-
-    def section_writing_node(self, state: ReportState) -> ReportState:
-        # input_dict = {'topic': ,}
-
-        section = state.sections[2]
-        topic = section_template.format(topic=state.topic, section_name=section.name, section_topic=section.description)
-
-        config = {
-            "configurable": {
-                "thread_id": str(uuid4()),
-            }
-        }
-
-        dummy = -32
-        return state
-
+        out_dict = self.run(topic=input_dict['topic'], config=config)
+        return out_dict['content']
 
     def build_graph(self):
         workflow = StateGraph(ReportState, config_schema=Configuration)
 
         ## Nodes
         workflow.add_node(node=Node.PLANNER.value, action=self.planner.run)
-        workflow.add_node(node=Node.WRITER.value, action=self.section_writing_node)
+        workflow.add_node(node=Node.SECTIONS_WRITER.value, action=self.sections_writer.run)
 
         ## Edges
         workflow.add_edge(start_key=START, end_key=Node.PLANNER.value)
-        workflow.add_edge(start_key=Node.PLANNER.value, end_key=Node.WRITER.value)
-        workflow.add_edge(start_key=Node.WRITER.value, end_key=END)
+        workflow.add_edge(start_key=Node.PLANNER.value, end_key=Node.SECTIONS_WRITER.value)
+        workflow.add_edge(start_key=Node.SECTIONS_WRITER.value, end_key=END)
 
-        compiled_graph = workflow.compile()
+        compiled_graph = workflow.compile(checkpointer=self.memory_saver)
         return compiled_graph
 

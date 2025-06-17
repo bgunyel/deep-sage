@@ -2,13 +2,15 @@ import asyncio
 import json
 from typing import Any, Final
 
-from ai_common import LlmServers, get_llm, TavilySearchCategory, get_config_from_runnable
-from ai_common.components import QueryWriter, WebSearchNode
 from langchain_core.callbacks import get_usage_metadata_callback
 from langchain_core.runnables import RunnableConfig
+from langchain.chat_models import init_chat_model
 from pydantic import BaseModel
 
+from ai_common import get_config_from_runnable
+from ai_common.components import QueryWriter, WebSearchNode
 from ..enums import Node
+from ..state import Section
 
 PLANNER_INSTRUCTIONS = """
 You are an expert writer planning the outline of sections of a report about a given topic.
@@ -86,27 +88,34 @@ Each section must have: name, description, research, and content fields.
 
 class Planner:
     def __init__(self,
-                 llm_server: LlmServers,
-                 model_params: dict[str, Any],
+                 llm_config: dict[str, Any],
                  web_search_api_key: str,
                  configuration_module_prefix: str):
         self.configuration_module_prefix: Final = configuration_module_prefix
         self.event_loop = asyncio.get_event_loop()
-        self.llm_server = llm_server
-        self.model_params = model_params
-        self.query_writer = QueryWriter(llm_server = llm_server,
-                                        model_params = model_params,
+
+        self.query_writer = QueryWriter(model_params = llm_config['language_model'],
                                         configuration_module_prefix = self.configuration_module_prefix)
         self.web_search_node = WebSearchNode(web_search_api_key = web_search_api_key,
-                                             llm_server = llm_server,
-                                             model_params = model_params,
+                                             model_params = llm_config['language_model'],
                                              configuration_module_prefix = self.configuration_module_prefix)
 
-        self.model_name = model_params['reasoning_model']
-        model_params['model_name'] = self.model_name
-        self.base_llm = get_llm(llm_server=llm_server, model_params=model_params)
+        model_params = llm_config['reasoning_model']
+        self.model_name = model_params['model']
+        self.base_llm = init_chat_model(
+            model=model_params['model'],
+            model_provider=model_params['model_provider'],
+            api_key=model_params['api_key'],
+            **model_params['model_args']
+        )
+
 
     def run(self, state: BaseModel, config: RunnableConfig) -> BaseModel:
+        event_loop = asyncio.get_event_loop()
+        state = event_loop.run_until_complete(self.run_async(state=state, config=config))
+        return state
+
+    async def run_async(self, state: BaseModel, config: RunnableConfig) -> BaseModel:
         """
         Generate a structured research plan by creating sections for a comprehensive report.
         
@@ -150,12 +159,9 @@ class Planner:
                                                    context=state.source_str)
 
         with get_usage_metadata_callback() as cb:
-            results = self.base_llm.invoke(instructions,
-                                           max_completion_tokens = 131072,
-                                           top_p = 0.95,
-                                           response_format = {"type": "json_object"})
+            results = self.base_llm.invoke(instructions, response_format = {"type": "json_object"})
             state.token_usage[self.model_name]['input_tokens'] += cb.usage_metadata[self.model_name]['input_tokens']
             state.token_usage[self.model_name]['output_tokens'] += cb.usage_metadata[self.model_name]['output_tokens']
         json_dict = json.loads(results.content)
-        state.sections = json_dict['sections']
+        state.sections = [Section(**s) for s in json_dict['sections']]
         return state

@@ -1,3 +1,4 @@
+from typing import Any
 from ai_common import CfgBase, TavilySearchCategory
 
 
@@ -20,9 +21,11 @@ class Configuration(CfgBase):
     """The configurable fields for the workflow"""
     max_iterations: int # = 3
     max_results_per_query: int # = 5
+    # max_retries: int  # in case LLM call fails, the number of retries
     max_tokens_per_source: int # = 5000
     number_of_days_back: int # = None
     number_of_queries: int # = 3
     report_structure: str = DEFAULT_REPORT_STRUCTURE
     search_category: TavilySearchCategory = "general"
+    sections_config: dict[str, Any]
     strip_thinking_tokens: bool = True

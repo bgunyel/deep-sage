@@ -1,6 +1,7 @@
-from uuid import uuid4
+import os
 import datetime
 import time
+from uuid import uuid4
 
 from ai_common import LlmServers, PRICE_USD_PER_MILLION_TOKENS
 from config import settings
@@ -8,40 +9,48 @@ from src.deep_sage import Researcher
 
 def main():
 
-    llm_server = LlmServers.GROQ
+    os.environ['LANGSMITH_API_KEY'] = settings.LANGSMITH_API_KEY
+    os.environ['LANGSMITH_TRACING'] = settings.LANGSMITH_TRACING
 
     llm_config = {
-        LlmServers.GROQ.value: {
-            'model_name': None,
-            'groq_api_key': settings.GROQ_API_KEY,
-            'language_model': 'llama-3.3-70b-versatile',
-            'reasoning_model': 'deepseek-r1-distill-llama-70b' # 'qwen-qwq-32b' is very problematic with structured output
+        'language_model': {
+            'model': 'llama-3.3-70b-versatile',
+            'model_provider': LlmServers.GROQ.value,
+            'api_key': settings.GROQ_API_KEY,
+            'model_args': {
+                'temperature': 0,
+                'max_retries': 5,
+                'max_tokens': 32768,
+                'model_kwargs': {
+                    'top_p': 0.95,
+                    'service_tier': "auto",
+                }
+            }
         },
-        LlmServers.OPENAI.value: {
-            'model_name': None,
-            'openai_api_key': settings.OPENAI_API_KEY,
-            'language_model': 'gpt-4.1-mini',
-            'reasoning_model': 'gpt-4.1-mini',
-        },
-        LlmServers.VLLM.value: {
-            'llm_base_url': None,
-            'vllm_api_key': None
-        },
-        LlmServers.OLLAMA.value: {
-            'model_name': None,
-            'llm_base_url': None,
-            'format': None,  # Literal['', 'json']
-            'context_window_length': None,
+        'reasoning_model': {
+            'model': 'deepseek-r1-distill-llama-70b',
+            'model_provider': LlmServers.GROQ.value,
+            'api_key': settings.GROQ_API_KEY,
+            'model_args': {
+                'temperature': 0,
+                'max_retries': 5,
+                'max_tokens': 32768,
+                'model_kwargs': {
+                    'top_p': 0.95,
+                    'service_tier': "auto",
+                }
+            }
         }
     }
 
-    language_model = llm_config[llm_server.value].get('language_model', '')
-    reasoning_model = llm_config[llm_server.value].get('reasoning_model', '')
+    language_model = llm_config['language_model'].get('model', '')
+    reasoning_model = llm_config['reasoning_model'].get('model', '')
 
     topic = 'first 100 days of Trump administration'
-    print(f'LLM Server: {llm_server.value}')
     print(f'Language Model: {language_model}')
     print(f'Reasoning Model: {reasoning_model}')
+    print('\n')
+    print(f'Topic: {topic}')
     print('\n\n\n')
 
     config = {
@@ -54,20 +63,34 @@ def main():
             'number_of_queries': 3,
             'search_category': 'general',
             'strip_thinking_tokens': True,
+            'sections_config': {
+                "configurable": {
+                    'thread_id': str(uuid4()),
+                    'max_iterations': 3,
+                    'max_results_per_query': 5,
+                    'max_tokens_per_source': 10000,
+                    'number_of_days_back': 1e6,
+                    'number_of_queries': 4,
+                    'search_category': 'general',
+                    'strip_thinking_tokens': True,
+                    }
+                }
+            }
         }
-    }
 
-    researcher = Researcher(
-        llm_server=llm_server,
-        llm_config=llm_config[llm_server.value],
-        web_search_api_key=settings.TAVILY_API_KEY
-    )
-
+    researcher = Researcher(llm_config=llm_config, web_search_api_key=settings.TAVILY_API_KEY)
     out_dict = researcher.run(topic=topic, config=config)
-    price_dict = {k: PRICE_USD_PER_MILLION_TOKENS[llm_server.value][k] for k in out_dict['token_usage'].keys()}
-    total_cost = sum([price_dict[k][p] * out_dict['token_usage'][k][p] for k in price_dict.keys() for p in
-                      price_dict[k].keys()]) / 1e6
+
+    total_cost = 0
+    for model_type, params in llm_config.items():
+        model_provider = params['model_provider']
+        model = params['model']
+        price_dict = PRICE_USD_PER_MILLION_TOKENS[model_provider][model]
+        cost = sum([price_dict[k] * out_dict['token_usage'][model][k] for k in price_dict.keys()]) / 1e6
+        total_cost += cost
+        print(f'Cost for {model_provider}: {model} --> {cost:.4f} USD')
     print(f'Total Token Usage Cost: {total_cost:.4f} USD')
+
 
     dummy = -32
 

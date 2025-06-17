@@ -7,6 +7,7 @@ class Node(Enum):
     QUERY_WRITER = 'query_writer'
     RESET = 'reset'
     REVIEWER = 'reviewer'
+    SECTIONS_WRITER = 'sections_writer'
     WEB_SEARCH = 'web_search'
     WRITER = 'writer'
 
