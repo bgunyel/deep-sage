@@ -52,6 +52,7 @@ Each section should have the following fields:
 - Description - Brief overview of the main topics and concepts to be covered in this section.
 - Research - Whether to perform web research for this section of the report (binary score 'yes' or 'no').
 - Content - The content of the section, which you will leave blank for now.
+- Unique Sources - Unique sources used for this section (you will leave blank for now).
 
 Guidelines:
 - Ensure each section has a distinct purpose with no content overlap
@@ -74,6 +75,7 @@ Return the sections of the report as a JSON object:
                 "description": "string",
                 "research": "string",
                 "content": "string",
+                "unique_sources": {{}}
             }}
     ]
 }}
@@ -82,7 +84,7 @@ Return the sections of the report as a JSON object:
 Generate the sections of the report. 
 Before submitting, review your structure to ensure it has no redundant sections and follows a logical flow.
 Your response must include a 'sections' field containing a list of sections.
-Each section must have: name, description, research, and content fields.
+Each section must have: name, description, research, content, unique_sources fields.
 """
 
 

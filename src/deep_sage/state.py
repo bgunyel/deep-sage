@@ -24,6 +24,9 @@ class Section(BaseModel):
     content: str = Field(
         description="The content of the section."
     )
+    unique_sources: dict[str, Any] = Field(
+        description="Unique sources for this section."
+    )
 
 class Sections(BaseModel):
     sections: List[Section] = Field(description="Sections of the report.")

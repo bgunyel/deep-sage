@@ -35,11 +35,10 @@ class SectionsWriter:
         event_loop = asyncio.get_event_loop()
         out_list = event_loop.run_until_complete(self.run_async(state=state, config=configurable.sections_config))
 
-        state.steps.append(Node.SECTIONS_WRITER)
+        state.steps.append(Node.SECTIONS_WRITER.value)
         return state
 
     async def run_async(self, state: BaseModel, config: RunnableConfig) -> BaseModel:
-
 
         tasks = [
             self.section_writer.run(
@@ -51,4 +50,16 @@ class SectionsWriter:
         ]
 
         out_list = await asyncio.gather(*tasks)
-        return out_list
+
+        models_list = [*state.token_usage.keys()]
+        research_idx = [idx for (idx, section) in enumerate(state.sections) if section.research]
+
+        for (idx, s) in enumerate(out_list):
+            state.sections[research_idx[idx]].content = s['content']
+            state.sections[research_idx[idx]].unique_sources = s['unique_sources']
+
+            for m in models_list:
+                state.token_usage[m]['input_tokens'] += s['token_usage'][m]['input_tokens']
+                state.token_usage[m]['output_tokens'] += s['token_usage'][m]['output_tokens']
+
+        return state
