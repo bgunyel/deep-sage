@@ -2,6 +2,7 @@ import os
 import datetime
 import time
 from uuid import uuid4
+from md2pdf.core import md2pdf
 
 from ai_common import LlmServers, PRICE_USD_PER_MILLION_TOKENS
 from config import settings
@@ -93,6 +94,10 @@ def main():
         total_cost += cost
         print(f'Cost for {model_provider}: {model} --> {cost:.4f} USD')
     print(f'Total Token Usage Cost: {total_cost:.4f} USD')
+
+    # Save Markdown and PDF files
+
+    md2pdf(pdf_file_path = os.path.join(settings.OUT_FOLDER, 'out.pdf'), md_content = out_dict['content'])
 
 
     dummy = -32

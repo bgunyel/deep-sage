@@ -25,6 +25,7 @@ class SectionsWriter:
             web_search_api_key=web_search_api_key
         )
 
+    """
     def run(self, state: BaseModel, config: RunnableConfig) -> BaseModel:
 
         configurable = get_config_from_runnable(
@@ -36,9 +37,11 @@ class SectionsWriter:
         state = event_loop.run_until_complete(self.run_async(state=state, config=configurable.sections_config))
         state.steps.append(Node.SECTIONS_WRITER.value)
         return state
+    """
 
-    async def run_async(self, state: BaseModel, config: RunnableConfig) -> BaseModel:
+    def run(self, state: BaseModel, config: RunnableConfig) -> BaseModel:
 
+        event_loop = asyncio.get_event_loop()
         tasks = [
             self.section_writer.run(
                 topic=section_template.format(
@@ -48,7 +51,9 @@ class SectionsWriter:
             ) for section in state.sections if section.research
         ]
 
-        out_list = await asyncio.gather(*tasks)
+        # out_list = await asyncio.gather(*tasks)
+        out_list = event_loop.run_until_complete(asyncio.gather(*tasks))
+        state.steps.append(Node.SECTIONS_WRITER.value)
 
         models_list = [*state.token_usage.keys()]
         research_idx = [idx for (idx, section) in enumerate(state.sections) if section.research]

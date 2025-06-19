@@ -112,12 +112,14 @@ class Planner:
         )
 
 
+    """
     def run(self, state: BaseModel, config: RunnableConfig) -> BaseModel:
         event_loop = asyncio.get_event_loop()
         state = event_loop.run_until_complete(self.run_async(state=state, config=config))
         return state
+    """
 
-    async def run_async(self, state: BaseModel, config: RunnableConfig) -> BaseModel:
+    def run(self, state: BaseModel, config: RunnableConfig) -> BaseModel:
         """
         Generate a structured research plan by creating sections for a comprehensive report.
         
