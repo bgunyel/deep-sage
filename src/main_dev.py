@@ -46,7 +46,7 @@ def main():
     language_model = llm_config['language_model'].get('model', '')
     reasoning_model = llm_config['reasoning_model'].get('model', '')
 
-    topic = 'first 100 days of Trump administration'
+    topic = 'I wonder Trump administration'
     print(f'Language Model: {language_model}')
     print(f'Reasoning Model: {reasoning_model}')
     print('\n')
@@ -79,7 +79,10 @@ def main():
         }
 
     researcher = Researcher(llm_config=llm_config, web_search_api_key=settings.TAVILY_API_KEY)
+    t1 = time.time()
     out_dict = researcher.run(topic=topic, config=config)
+    t2 = time.time()
+    print(f'Report generation took {(t2 - t1):.2f} seconds')
 
     total_cost = 0
     for model_type, params in llm_config.items():

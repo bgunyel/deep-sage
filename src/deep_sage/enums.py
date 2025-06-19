@@ -3,6 +3,7 @@ from enum import Enum
 
 class Node(Enum):
     # In alphabetical order
+    FINAL_WRITER = 'final_writer'
     PLANNER = 'planner'
     QUERY_WRITER = 'query_writer'
     RESET = 'reset'

@@ -9,9 +9,10 @@ from ai_common import GraphBase
 
 from .configuration import Configuration
 from .enums import Node
-from .state import ReportState, section_template
+from .state import ReportState
 from .components.planner import Planner
 from .components.sections_writer import SectionsWriter
+from .components.final_writer import FinalWriter
 
 
 class Researcher(GraphBase):
@@ -30,6 +31,10 @@ class Researcher(GraphBase):
             web_search_api_key=web_search_api_key,
             configuration_module_prefix=self.configuration_module_prefix,
         )
+        self.final_writer = FinalWriter(
+            model_params = llm_config['language_model'],
+            configuration_module_prefix=self.configuration_module_prefix,
+        )
 
         self.graph = self.build_graph()
 
@@ -37,6 +42,7 @@ class Researcher(GraphBase):
         in_state = ReportState(
             content='',
             iteration=0,
+            report_title='',
             sections=[],
             search_queries=[],
             source_str='',
@@ -64,12 +70,15 @@ class Researcher(GraphBase):
         ## Nodes
         workflow.add_node(node=Node.PLANNER.value, action=self.planner.run)
         workflow.add_node(node=Node.SECTIONS_WRITER.value, action=self.sections_writer.run)
+        workflow.add_node(node=Node.FINAL_WRITER.value, action=self.final_writer.run)
 
         ## Edges
         workflow.add_edge(start_key=START, end_key=Node.PLANNER.value)
         workflow.add_edge(start_key=Node.PLANNER.value, end_key=Node.SECTIONS_WRITER.value)
-        workflow.add_edge(start_key=Node.SECTIONS_WRITER.value, end_key=END)
+        workflow.add_edge(start_key=Node.SECTIONS_WRITER.value, end_key=Node.FINAL_WRITER.value)
+        workflow.add_edge(start_key=Node.FINAL_WRITER.value, end_key=END)
 
+        ## Compile Graph
         compiled_graph = workflow.compile(checkpointer=self.memory_saver)
         return compiled_graph
 

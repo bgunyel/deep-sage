@@ -33,8 +33,7 @@ class SectionsWriter:
         )
 
         event_loop = asyncio.get_event_loop()
-        out_list = event_loop.run_until_complete(self.run_async(state=state, config=configurable.sections_config))
-
+        state = event_loop.run_until_complete(self.run_async(state=state, config=configurable.sections_config))
         state.steps.append(Node.SECTIONS_WRITER.value)
         return state
 

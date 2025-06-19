@@ -45,6 +45,7 @@ class ReportState(BaseModel):
     """
     content: str
     iteration: int = 0
+    report_title: str
     sections: list[Section]
     search_queries: list[SearchQuery]
     source_str: str
