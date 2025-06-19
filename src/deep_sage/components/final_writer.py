@@ -1,3 +1,4 @@
+import asyncio
 from typing import Any, Final
 
 from langchain_core.runnables import RunnableConfig
@@ -118,6 +119,7 @@ class FinalWriter:
 
         # TODO: This loop will be async'ed
         # TODO: Token usage will be added to state
+        """
         for idx, section in enumerate(state.sections):
             if not section.research:
                 out_dict = self.write_section(topic=state.topic,
@@ -125,6 +127,23 @@ class FinalWriter:
                                               section_description=section.description,
                                               context=context)
                 section.content = out_dict['content']
+        """
+        event_loop = asyncio.get_event_loop()
+        tasks = [
+            self.write_section(
+                topic = state.topic,
+                section_name = section.name,
+                section_description = section.description,
+                context = context
+            ) for section in state.sections if not section.research
+        ]
+        out_list = event_loop.run_until_complete(asyncio.gather(*tasks))
+
+        non_research_idx = [idx for (idx, section) in enumerate(state.sections) if not section.research]
+        for (idx, s) in enumerate(out_list):
+            state.sections[non_research_idx[idx]].content = s['content']
+            state.token_usage[self.model_name]['input_tokens'] += s['token_usage'][self.model_name]['input_tokens']
+            state.token_usage[self.model_name]['output_tokens'] += s['token_usage'][self.model_name]['output_tokens']
 
         # All the report context including the final sections written above
         # Theoretically, the final (non-research) sections can be anywhere in the report (Planner decides)
@@ -140,7 +159,7 @@ class FinalWriter:
         return state
 
 
-    def write_section(self, topic: str, section_name: str, section_description: str, context: str) -> dict[str, Any]:
+    async def write_section(self, topic: str, section_name: str, section_description: str, context: str) -> dict[str, Any]:
 
         with get_usage_metadata_callback() as cb:
             instructions = WRITING_INSTRUCTIONS.format(
@@ -149,7 +168,7 @@ class FinalWriter:
                 section_description=section_description,
                 context=context,
             )
-            results = self.writer_llm.invoke(instructions)
+            results = await self.writer_llm.ainvoke(instructions)
             out_dict = {
                 'content': results.content,
                 'token_usage': cb.usage_metadata

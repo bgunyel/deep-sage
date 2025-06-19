@@ -46,7 +46,7 @@ def main():
     language_model = llm_config['language_model'].get('model', '')
     reasoning_model = llm_config['reasoning_model'].get('model', '')
 
-    topic = 'I wonder Trump administration'
+    topic = 'My kid wonders what Trump has done in 2025 so far'
     print(f'Language Model: {language_model}')
     print(f'Reasoning Model: {reasoning_model}')
     print('\n')
