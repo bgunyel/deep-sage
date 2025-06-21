@@ -1,4 +1,3 @@
-import asyncio
 import json
 from typing import Any, Final
 
@@ -94,8 +93,6 @@ class Planner:
                  web_search_api_key: str,
                  configuration_module_prefix: str):
         self.configuration_module_prefix: Final = configuration_module_prefix
-        self.event_loop = asyncio.get_event_loop()
-
         self.query_writer = QueryWriter(model_params = llm_config['language_model'],
                                         configuration_module_prefix = self.configuration_module_prefix)
         self.web_search_node = WebSearchNode(web_search_api_key = web_search_api_key,
@@ -156,7 +153,7 @@ class Planner:
             configuration_module_prefix = self.configuration_module_prefix,
             config = config
         )
-        state.steps.append(Node.PLANNER.value)
+        state.steps.append(Node.PLANNER)
 
         instructions = PLANNER_INSTRUCTIONS.format(topic=state.topic,
                                                    report_organization=configurable.report_structure,

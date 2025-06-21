@@ -29,7 +29,7 @@ The system follows a modular pipeline architecture with four main components:
 
 ### Prerequisites
 
-- Python 3.11 or higher
+- Python 3.13 or higher
 - UV package manager (recommended) or pip
 
 ### Using UV (Recommended)
@@ -123,7 +123,7 @@ For quick testing, use the included development script:
 python src/main_dev.py
 ```
 
-This will generate a report and save both Markdown and PDF versions to the `out/` directory.
+This will generate a report and save both Markdown and PDF versions to the `out/` directory with timestamped filenames.
 
 ## Configuration Options
 
@@ -150,7 +150,7 @@ Generated reports include:
 - **Introduction**: Overview and context
 - **Research Sections**: Data-driven content with sources
 - **Conclusion**: Synthesis and key takeaways
-- **Citations**: Automatically formatted source list
+- **Citations**: Automatically formatted numbered source list with clickable links
 
 ## Dependencies
 

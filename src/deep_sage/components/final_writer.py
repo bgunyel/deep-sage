@@ -5,7 +5,6 @@ from langchain_core.runnables import RunnableConfig
 from langchain_core.callbacks import get_usage_metadata_callback
 from langchain.chat_models import init_chat_model
 from pydantic import BaseModel
-from ai_common import strip_thinking_tokens, get_config_from_runnable
 
 from ..enums import Node
 
@@ -117,18 +116,7 @@ class FinalWriter:
             [f'## {section.name}\n\n{section.content}\n\n' for section in state.sections if section.research]
         )
 
-        # TODO: This loop will be async'ed
-        # TODO: Token usage will be added to state
-        """
-        for idx, section in enumerate(state.sections):
-            if not section.research:
-                out_dict = self.write_section(topic=state.topic,
-                                              section_name=section.name,
-                                              section_description=section.description,
-                                              context=context)
-                section.content = out_dict['content']
-        """
-        event_loop = asyncio.get_event_loop()
+        event_loop = asyncio.new_event_loop()
         tasks = [
             self.write_section(
                 topic = state.topic,
@@ -138,6 +126,7 @@ class FinalWriter:
             ) for section in state.sections if not section.research
         ]
         out_list = event_loop.run_until_complete(asyncio.gather(*tasks))
+        event_loop.close()
 
         non_research_idx = [idx for (idx, section) in enumerate(state.sections) if not section.research]
         for (idx, s) in enumerate(out_list):
@@ -154,7 +143,7 @@ class FinalWriter:
         state.token_usage[self.model_name]['input_tokens'] += out_dict['token_usage'][self.model_name]['input_tokens']
         state.token_usage[self.model_name]['output_tokens'] += out_dict['token_usage'][self.model_name]['output_tokens']
         state.report_title = out_dict['title']
-        state.steps.append(Node.FINAL_WRITER.value)
+        state.steps.append(Node.FINAL_WRITER)
 
         return state
 

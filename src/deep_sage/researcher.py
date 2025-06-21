@@ -1,4 +1,3 @@
-import asyncio
 from uuid import uuid4
 from typing import Any, Final
 from langgraph.graph import START, END, StateGraph
@@ -67,17 +66,17 @@ class Researcher(GraphBase):
         workflow = StateGraph(ReportState, config_schema=Configuration)
 
         ## Nodes
-        workflow.add_node(node=Node.PLANNER.value, action=self.planner.run)
-        workflow.add_node(node=Node.SECTIONS_WRITER.value, action=self.sections_writer.run)
-        workflow.add_node(node=Node.FINAL_WRITER.value, action=self.final_writer.run)
-        workflow.add_node(node=Node.FINALIZER.value, action=self.finalizer.run)
+        workflow.add_node(node=Node.PLANNER, action=self.planner.run)
+        workflow.add_node(node=Node.SECTIONS_WRITER, action=self.sections_writer.run)
+        workflow.add_node(node=Node.FINAL_WRITER, action=self.final_writer.run)
+        workflow.add_node(node=Node.FINALIZER, action=self.finalizer.run)
 
         ## Edges
-        workflow.add_edge(start_key=START, end_key=Node.PLANNER.value)
-        workflow.add_edge(start_key=Node.PLANNER.value, end_key=Node.SECTIONS_WRITER.value)
-        workflow.add_edge(start_key=Node.SECTIONS_WRITER.value, end_key=Node.FINAL_WRITER.value)
-        workflow.add_edge(start_key=Node.FINAL_WRITER.value, end_key=Node.FINALIZER.value)
-        workflow.add_edge(start_key=Node.FINALIZER.value, end_key=END)
+        workflow.add_edge(start_key=START, end_key=Node.PLANNER)
+        workflow.add_edge(start_key=Node.PLANNER, end_key=Node.SECTIONS_WRITER)
+        workflow.add_edge(start_key=Node.SECTIONS_WRITER, end_key=Node.FINAL_WRITER)
+        workflow.add_edge(start_key=Node.FINAL_WRITER, end_key=Node.FINALIZER)
+        workflow.add_edge(start_key=Node.FINALIZER, end_key=END)
 
         ## Compile Graph
         compiled_graph = workflow.compile(checkpointer=self.memory_saver)

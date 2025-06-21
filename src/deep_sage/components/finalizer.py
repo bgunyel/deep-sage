@@ -15,10 +15,11 @@ class Finalizer:
 
         # Report Context
         context = f'# {state.report_title}'
-        context += ''.join([f'\n\n## {section.name}\n\n{section.content}' for section in state.sections])
+        context += f'\n\n\n{state.sections[0].content}'
+        context += ''.join([f'\n\n## {section.name}\n\n{section.content}' for idx, section in enumerate(state.sections) if idx > 0])
         context += f'\n\n## Citations\n\n'
-        context += ''.join([f'* {v["title"]}: {k}\n' for k, v in unique_sources.items()])
+        context += '\n'.join([f"{idx}.\t{v['title']}: [{k.replace('_', '\_')}]({k})" for idx, (k, v) in enumerate(unique_sources.items(), start=1)])
         state.content = context
 
-        state.steps.append(Node.FINALIZER.value)
+        state.steps.append(Node.FINALIZER)
         return state

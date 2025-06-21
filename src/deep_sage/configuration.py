@@ -19,12 +19,11 @@ DEFAULT_REPORT_STRUCTURE = """The report structure should focus on breaking-down
 
 class Configuration(CfgBase):
     """The configurable fields for the workflow"""
-    max_iterations: int # = 3
-    max_results_per_query: int # = 5
-    # max_retries: int  # in case LLM call fails, the number of retries
-    max_tokens_per_source: int # = 5000
-    number_of_days_back: int # = None
-    number_of_queries: int # = 3
+    max_iterations: int
+    max_results_per_query: int
+    max_tokens_per_source: int
+    number_of_days_back: int
+    number_of_queries: int
     report_structure: str = DEFAULT_REPORT_STRUCTURE
     search_category: TavilySearchCategory = "general"
     sections_config: dict[str, Any]

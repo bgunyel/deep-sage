@@ -47,7 +47,7 @@ def main():
     language_model = llm_config['language_model'].get('model', '')
     reasoning_model = llm_config['reasoning_model'].get('model', '')
 
-    topic = 'My kid wonders what Trump has done in 2025 so far'
+    topic = 'Life, Reign, and Philosophy of Marcus Aurelius'
     print(f'Language Model: {language_model}')
     print(f'Reasoning Model: {reasoning_model}')
     print('\n')
@@ -95,9 +95,14 @@ def main():
         print(f'Cost for {model_provider}: {model} --> {cost:.4f} USD')
     print(f'Total Token Usage Cost: {total_cost:.4f} USD')
 
-    # Save Markdown and PDF files
+    ## Save Markdown and PDF files
+    t_now = datetime.datetime.now().replace(microsecond=0).astimezone(
+        tz=datetime.timezone(offset=datetime.timedelta(hours=3), name='UTC+3'))
+    file_name = os.path.join(settings.OUT_FOLDER, f'out-{t_now.isoformat()}') # No extension
+    with open(f'{file_name}.md', 'w', encoding='utf-8') as f:
+        f.write(f"{out_dict['content']}")
 
-    md2pdf(pdf_file_path = os.path.join(settings.OUT_FOLDER, 'out.pdf'), md_content = out_dict['content'])
+    md2pdf(pdf_file_path = f'{file_name}.pdf', md_content = out_dict['content'])
 
 
     dummy = -32

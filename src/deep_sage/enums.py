@@ -1,15 +1,13 @@
-from enum import Enum
+from typing import ClassVar
+from ai_common import NodeBase
+from pydantic import ConfigDict
 
 
-class Node(Enum):
-    # In alphabetical order
-    FINAL_WRITER = 'final_writer'
-    FINALIZER = 'finalizer'
-    PLANNER = 'planner'
-    QUERY_WRITER = 'query_writer'
-    RESET = 'reset'
-    REVIEWER = 'reviewer'
-    SECTIONS_WRITER = 'sections_writer'
-    WEB_SEARCH = 'web_search'
-    WRITER = 'writer'
+class Node(NodeBase):
+    model_config = ConfigDict(frozen=True)
 
+    # Class attributes
+    FINAL_WRITER: ClassVar[str] = 'final_writer'
+    FINALIZER: ClassVar[str] = 'finalizer'
+    PLANNER: ClassVar[str] = 'planner'
+    SECTIONS_WRITER: ClassVar[str] = 'sections_writer'

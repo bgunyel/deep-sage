@@ -1,15 +1,10 @@
 import asyncio
-from uuid import uuid4
 from typing import Any, Final
 
-from langchain_core.callbacks import get_usage_metadata_callback
 from langchain_core.runnables import RunnableConfig
-from langchain.chat_models import init_chat_model
 from pydantic import BaseModel
-
-from ai_common import get_config_from_runnable
-from ai_common.components import QueryWriter, WebSearchNode
 from summary_writer import SummaryWriter
+
 from ..enums import Node
 from ..state import section_template
 
@@ -25,23 +20,9 @@ class SectionsWriter:
             web_search_api_key=web_search_api_key
         )
 
-    """
     def run(self, state: BaseModel, config: RunnableConfig) -> BaseModel:
 
-        configurable = get_config_from_runnable(
-            configuration_module_prefix=self.configuration_module_prefix,
-            config=config
-        )
-
-        event_loop = asyncio.get_event_loop()
-        state = event_loop.run_until_complete(self.run_async(state=state, config=configurable.sections_config))
-        state.steps.append(Node.SECTIONS_WRITER.value)
-        return state
-    """
-
-    def run(self, state: BaseModel, config: RunnableConfig) -> BaseModel:
-
-        event_loop = asyncio.get_event_loop()
+        event_loop = asyncio.new_event_loop()
         tasks = [
             self.section_writer.run(
                 topic=section_template.format(
@@ -53,7 +34,8 @@ class SectionsWriter:
 
         # out_list = await asyncio.gather(*tasks)
         out_list = event_loop.run_until_complete(asyncio.gather(*tasks))
-        state.steps.append(Node.SECTIONS_WRITER.value)
+        event_loop.close()
+        state.steps.append(Node.SECTIONS_WRITER)
 
         models_list = [*state.token_usage.keys()]
         research_idx = [idx for (idx, section) in enumerate(state.sections) if section.research]
